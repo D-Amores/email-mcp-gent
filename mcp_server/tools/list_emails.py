@@ -11,10 +11,7 @@ DEFAULT_SENDER = "Unknown"
 
 def _get_header_value(headers: list[dict], name: str, default: str) -> str:
     """Extract a specific header value from a list of headers."""
-    return next(
-        (h["value"] for h in headers if h["name"] == name),
-        default
-    )
+    return next((h["value"] for h in headers if h["name"] == name), default)
 
 
 def _parse_email(message: dict) -> dict:
@@ -31,10 +28,7 @@ def _parse_email(message: dict) -> dict:
 
 def _fetch_email_details(service, message_id: str) -> dict:
     """Fetch full details of a single email by ID."""
-    return service.users().messages().get(
-        userId=GMAIL_USER_ID,
-        id=message_id
-    ).execute()
+    return service.users().messages().get(userId=GMAIL_USER_ID, id=message_id).execute()
 
 
 @mcp.tool()
@@ -52,17 +46,17 @@ def list_emails(max_results: int = 10, query: str = "") -> list[dict]:
     try:
         service = get_gmail_service(scopes=SCOPES)
 
-        results = service.users().messages().list(
-            userId=GMAIL_USER_ID,
-            maxResults=max_results,
-            q=query
-        ).execute()
+        results = (
+            service.users()
+            .messages()
+            .list(userId=GMAIL_USER_ID, maxResults=max_results, q=query)
+            .execute()
+        )
 
         messages = results.get("messages", [])
 
         return [
-            _parse_email(_fetch_email_details(service, msg["id"]))
-            for msg in messages
+            _parse_email(_fetch_email_details(service, msg["id"])) for msg in messages
         ]
 
     except Exception as e:

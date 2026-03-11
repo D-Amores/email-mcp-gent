@@ -1,12 +1,7 @@
-from fastmcp import FastMCP
+from mcp_server.config import mcp
 
-mcp = FastMCP("Gmail Manager")
-
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send'
-]
-
+# Import tools so mcp registers them
+from mcp_server.tools.list_emails import list_emails
 
 if __name__ == "__main__":
-    main()
+    mcp.run()

@@ -6,6 +6,7 @@ from mcp_server.tools.send_email import send_email
 
 # Import resources
 from mcp_server.resources.email_profile import get_profile
+from mcp_server.resources.setup_manual import get_setup_manual
 
 if __name__ == "__main__":
     mcp.run()

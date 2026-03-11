@@ -30,3 +30,47 @@ def daily_email_summary() -> str:
     Instructs the LLM to categorize emails by urgency and priority.
     """
     return _build_summary_template()
+
+
+# ─── Compose Professional Email ───────────────────────────────────────────────
+
+
+def _recipient_context(recipient: str) -> str:
+    """Build recipient context string."""
+    return f" to {recipient}" if recipient else ""
+
+
+def _subject_context(subject: str) -> str:
+    """Build subject context string."""
+    return f' with subject "{subject}"' if subject else ""
+
+
+def _build_compose_template(recipient: str, subject: str) -> str:
+    """Build the professional email compose prompt template."""
+    return f"""
+    Help me write a professional email{_recipient_context(recipient)}{_subject_context(subject)}.
+
+    Instructions:
+    - Ask me for the purpose of the email if it is not clear
+    - Use a professional and cordial tone
+    - Follow this structure:
+        1. Greeting
+        2. Context
+        3. Main message
+        4. Call to action
+        5. Closing
+    - Check spelling and grammar before sending
+    - Once the email is ready, use the send_email tool to send it
+    """
+
+
+@mcp.prompt()
+def compose_professional_email(recipient: str = "", subject: str = "") -> str:
+    """
+    Prompt: Assistant for composing professional emails.
+
+    Args:
+        recipient: Email recipient (optional)
+        subject: Email subject (optional)
+    """
+    return _build_compose_template(recipient, subject)

@@ -12,3 +12,4 @@ wheels/
 # credentials
 credentials.json
 token.pickle
+.env

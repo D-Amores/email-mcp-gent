@@ -2,10 +2,9 @@ import os
 import asyncio
 from fastmcp import Client
 
-# Path relativo al proyecto — funciona en cualquier máquina
 SERVER_PATH = os.path.join(
-    os.path.dirname(__file__),  # client/
-    "..",  # sube a raíz
+    os.path.dirname(__file__),
+    "..",
     "mcp_server",
     "server.py",
 )
@@ -56,7 +55,7 @@ class GmailMCPClient:
             return tools
 
 
-# ─── Solo para probar ─────────────────────────────────────────────────────────
+# ─── Test ─────────────────────────────────────────────────────────
 if __name__ == "__main__":
 
     async def main():

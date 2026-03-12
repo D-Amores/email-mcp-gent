@@ -11,19 +11,20 @@ class GmailAgent:
         self.tools = []
         self.profile = ""
         self.system_context = ""
+        self.summary_prompt = ""
+        self.compose_prompt = ""
         self.conversation_history = []
 
     async def initialize(self) -> None:
-        """Load tools, resources and context from MCP server."""
+        """Load tools, resources and prompts from MCP server."""
         # Tools
         mcp_tools = await self.mcp.get_tools()
         self.tools = self.llm.convert_tools(mcp_tools)
 
-        # Resources — profile always the same, load once
+        # Resources
         profile_resource = await self.mcp.read_resource("gmail://profile")
         self.profile = profile_resource[0].text if profile_resource else ""
 
-        # System context — tell Gemini what resources exist
         self.system_context = f"""
         {self.profile}
 
@@ -33,6 +34,13 @@ class GmailAgent:
         - docs://setup-manual/v2      → second version
         - docs://setup-manual/v3      → third version
         """
+
+        # Prompts
+        summary = await self.mcp.get_prompt("daily_email_summary")
+        self.summary_prompt = summary.messages[0].content.text if summary else ""
+
+        compose = await self.mcp.get_prompt("compose_professional_email")
+        self.compose_prompt = compose.messages[0].content.text if compose else ""
 
     async def _get_manual(self, version: str = "latest") -> str:
         """Load setup manual by version on demand."""
@@ -57,17 +65,15 @@ class GmailAgent:
         return user_message
 
     async def chat(self, user_message: str) -> str:
-        # Inject manual if needed
+        """Send a message and get a response using Gemini + MCP tools."""
         user_message = await self._inject_manual_if_needed(user_message)
 
-        # Inject system context on first message
         if not self.conversation_history and self.system_context:
             content = f"{self.system_context}\n\nUser request: {user_message}"
             self.conversation_history.append({"role": "user", "content": content})
         else:
             self.conversation_history.append({"role": "user", "content": user_message})
 
-        # Call Gemini with history + tools
         response = await self.llm.chat(
             messages=self.conversation_history, tools=self.tools
         )
@@ -104,6 +110,20 @@ class GmailAgent:
 
         return final_response
 
+    async def daily_summary(self) -> str:
+        """Activate daily email summary prompt."""
+        self.conversation_history = []
+        return await self.chat(self.summary_prompt)
+
+    async def compose_email(self, recipient: str = "", subject: str = "") -> str:
+        """Activate compose professional email prompt."""
+        self.conversation_history = []
+        compose = await self.mcp.get_prompt(
+            "compose_professional_email", {"recipient": recipient, "subject": subject}
+        )
+        prompt_text = compose.messages[0].content.text if compose else ""
+        return await self.chat(prompt_text)
+
 
 if __name__ == "__main__":
 
@@ -111,9 +131,13 @@ if __name__ == "__main__":
         agent = GmailAgent()
         await agent.initialize()
         print("✅ Agent initialized")
-        print("✅ Profile loaded")
         print("---")
-        response = await agent.chat("show me setup manual v2")
-        print(response)
+
+        # Test daily summary prompt
+        summary = await agent.compose_email(
+            recipient="carlos.amores17@unach.mx",
+            subject="Urge hacer el reporte de actividades que este listo hoy a las 4pm, el ya sabe que actividades y para que se necesita, redacta y envia",
+        )
+        print("Summary:", summary)
 
     asyncio.run(main())

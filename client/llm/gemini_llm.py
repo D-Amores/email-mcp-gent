@@ -9,7 +9,7 @@ load_dotenv()
 
 
 class GeminiLLM(BaseLLM):
-    def __init__(self, model: str = "gemini-2.5-flash"):
+    def __init__(self, model: str = "gemini-2.5-flash-lite"):
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         self.model = model
 
@@ -75,7 +75,13 @@ class GeminiLLM(BaseLLM):
         """Extract tool calls from Gemini response."""
         tool_calls = []
 
-        for part in response.candidates[0].content.parts:
+        if not response.candidates:
+            return tool_calls
+        content = response.candidates[0].content
+        if not content or not content.parts:
+            return tool_calls
+
+        for part in content.parts:
             if part.function_call and part.function_call.name:
                 tool_calls.append(
                     {
@@ -88,7 +94,32 @@ class GeminiLLM(BaseLLM):
 
     def extract_text(self, response) -> str:
         """Extract plain text from Gemini response."""
-        for part in response.candidates[0].content.parts:
+        if not response.candidates:
+            return ""
+        content = response.candidates[0].content
+        if not content or not content.parts:
+            return ""
+        for part in content.parts:
             if part.text:
                 return part.text
         return ""
+
+    def get_function_call_content(self, response) -> any:
+        """Gemini needs the raw Content object in history."""
+        if not response.candidates:
+            return None
+        return response.candidates[0].content
+
+    def get_tool_result_content(self, tool_name: str, tool_result: any) -> any:
+        """Gemini needs types.Content with FunctionResponse."""
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part(
+                    function_response=types.FunctionResponse(
+                        name=tool_name,
+                        response={"result": tool_result},
+                    )
+                )
+            ],
+        )

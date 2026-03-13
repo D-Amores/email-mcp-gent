@@ -59,3 +59,13 @@ class BaseLLM(ABC):
             Text response from the LLM
         """
         pass
+
+    @abstractmethod
+    def get_function_call_content(self, response) -> any:
+        """Get the raw function call content to append to history."""
+        pass
+
+    @abstractmethod
+    def get_tool_result_content(self, tool_name: str, tool_result: any) -> any:
+        """Build tool result content to append to history."""
+        pass

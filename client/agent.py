@@ -1,13 +1,28 @@
 import asyncio
+import os
 from google.genai import types
 from client.mcp_client import GmailMCPClient
 from client.llm.gemini_llm import GeminiLLM
+from client.llm.ollama_llm import OllamaLLM
+
+LLM_MAP = {
+    "gemini": GeminiLLM,
+    "ollama": OllamaLLM,
+}
 
 
 class GmailAgent:
     def __init__(self):
         self.mcp = GmailMCPClient()
-        self.llm = GeminiLLM()
+
+        provider = os.getenv("LLM_PROVIDER", "gemini")
+        model = (
+            os.getenv("OLLAMA_MODEL")
+            if provider == "ollama"
+            else os.getenv("GEMINI_MODEL")
+        )
+        self.llm = LLM_MAP[provider](model) if model else LLM_MAP[provider]()
+
         self.tools = []
         self.profile = ""
         self.system_context = ""
@@ -81,24 +96,16 @@ class GmailAgent:
         tool_calls = self.llm.extract_tool_calls(response)
 
         if tool_calls:
-            self.conversation_history.append(response.candidates[0].content)
+            self.conversation_history.append(
+                self.llm.get_function_call_content(response)
+            )
 
             for tool_call in tool_calls:
                 tool_result = await self.mcp.call_tool(
                     tool_name=tool_call["name"], params=tool_call["params"]
                 )
                 self.conversation_history.append(
-                    types.Content(
-                        role="tool",
-                        parts=[
-                            types.Part(
-                                function_response=types.FunctionResponse(
-                                    name=tool_call["name"],
-                                    response={"result": tool_result},
-                                )
-                            )
-                        ],
-                    )
+                    self.llm.get_tool_result_content(tool_call["name"], tool_result)
                 )
 
             response = await self.llm.chat(
@@ -130,14 +137,9 @@ if __name__ == "__main__":
     async def main():
         agent = GmailAgent()
         await agent.initialize()
-        print("✅ Agent initialized")
-        print("---")
 
-        # Test daily summary prompt
-        summary = await agent.compose_email(
-            recipient="carlos.amores17@unach.mx",
-            subject="Urge hacer el reporte de actividades que este listo hoy a las 4pm, el ya sabe que actividades y para que se necesita, redacta y envia",
-        )
-        print("Summary:", summary)
+        # Test the full tool-calling loop (not just the first LLM turn)
+        result = await agent.chat("list my last 3 emails")
+        print("Final response:", result)
 
     asyncio.run(main())

@@ -1,13 +1,14 @@
 import asyncio
 import os
-from google.genai import types
 from client.mcp_client import GmailMCPClient
 from client.llm.gemini_llm import GeminiLLM
 from client.llm.ollama_llm import OllamaLLM
+from client.llm.deepseek_llm import DeepSeekLLM
 
 LLM_MAP = {
     "gemini": GeminiLLM,
     "ollama": OllamaLLM,
+    "deepseek": DeepSeekLLM,
 }
 
 
@@ -16,11 +17,13 @@ class GmailAgent:
         self.mcp = GmailMCPClient()
 
         provider = os.getenv("LLM_PROVIDER", "gemini")
-        model = (
-            os.getenv("OLLAMA_MODEL")
-            if provider == "ollama"
-            else os.getenv("GEMINI_MODEL")
-        )
+        if provider == "ollama":
+            model = os.getenv("OLLAMA_MODEL")
+        elif provider == "deepseek":
+            model = os.getenv("DEEPSEEK_MODEL")
+        else:
+            model = os.getenv("GEMINI_MODEL")
+
         self.llm = LLM_MAP[provider](model) if model else LLM_MAP[provider]()
 
         self.tools = []
@@ -105,7 +108,7 @@ class GmailAgent:
                     tool_name=tool_call["name"], params=tool_call["params"]
                 )
                 self.conversation_history.append(
-                    self.llm.get_tool_result_content(tool_call["name"], tool_result)
+                    self.llm.get_tool_result_content(tool_call, tool_result)
                 )
 
             response = await self.llm.chat(

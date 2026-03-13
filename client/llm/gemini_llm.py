@@ -110,14 +110,14 @@ class GeminiLLM(BaseLLM):
             return None
         return response.candidates[0].content
 
-    def get_tool_result_content(self, tool_name: str, tool_result: any) -> any:
+    def get_tool_result_content(self, tool_call: dict, tool_result: any) -> any:
         """Gemini needs types.Content with FunctionResponse."""
         return types.Content(
             role="tool",
             parts=[
                 types.Part(
                     function_response=types.FunctionResponse(
-                        name=tool_name,
+                        name=tool_call["name"],
                         response={"result": tool_result},
                     )
                 )

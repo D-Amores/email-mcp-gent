@@ -102,7 +102,7 @@ class OllamaLLM(BaseLLM):
             ]
         return entry
 
-    def get_tool_result_content(self, tool_name: str, tool_result: any) -> any:
+    def get_tool_result_content(self, tool_call: dict, tool_result: any) -> any:
         """Ollama needs a tool message dict."""
         return {
             "role": "tool",

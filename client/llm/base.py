@@ -66,6 +66,6 @@ class BaseLLM(ABC):
         pass
 
     @abstractmethod
-    def get_tool_result_content(self, tool_name: str, tool_result: any) -> any:
+    def get_tool_result_content(self, tool_call: dict, tool_result: any) -> any:
         """Build tool result content to append to history."""
         pass
